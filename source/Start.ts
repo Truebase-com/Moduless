@@ -6,13 +6,18 @@ interface IOptions
 	headless: boolean;
 	target: string;
 	verbose: boolean;
+	help: boolean;
 }
 
 /** */
 (async () =>
 {
 	/** */
-	const options: IOptions = CommandLineArgs([
+	const layout = [
+		{
+			name: "help",
+			type: Boolean
+		},
 		{
 			name: "port",
 			alias: "p",
@@ -38,7 +43,26 @@ interface IOptions
 			type: Boolean,
 			defaultValue: false
 		}
-	]);
+	];
+	
+	const options: IOptions = CommandLineArgs(layout);
+	
+	if (options.help)
+	{
+		console.log("Options: ");
+		
+		for (const object of layout)
+		{
+			if (typeof object.defaultValue === "undefined")
+				continue;
+			
+			const def = String(object.defaultValue);
+			const msg = `--${object.name}, -${object.alias} [${object.name}]    (default: ${def})`;
+			console.log(msg); 
+		}
+		
+		return;
+	}
 	
 	const deb = new Debugger(options);
 	const outFiles = deb.findOutFilesRecursive(options.target);
