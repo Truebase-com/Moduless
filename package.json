@@ -12,8 +12,8 @@
 		"url": "https://github.com/Truebase-com/Moduless/issues"
 	},
 	"scripts": {
-		"build": "makets build",
-		"bundle": "makets bundle"
+		"bundle": "makets bundle",
+		"publish": "makets publish"
 	},
 	"dependencies": {
 		"command-line-args": "^5.1.1",
