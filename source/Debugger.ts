@@ -56,9 +56,8 @@ class Debugger
 				if (typeof tsConfig.compilerOptions.outFile === "string")
 				{
 					const outFile = Path.join(tsConfigDirPath, tsConfig.compilerOptions.outFile);
-					
 					if (!discoveredOutFiles.includes(outFile))
-						discoveredOutFiles.push(outFile);
+						discoveredOutFiles.unshift(outFile);
 				}
 			}
 			
@@ -74,7 +73,12 @@ class Debugger
 				// We have to avoid following projects that are "prepend",
 				// because they'll already be in the output.
 				if (prepend)
+				{
+					if (this.options.verbose)
+						console.log(`(Found ${refPath}, but skipping because "prepend" is true.)`);
+					
 					continue;
+				}
 				
 				if (typeof refPath !== "string")
 					continue;
@@ -127,15 +131,15 @@ class Debugger
 	async launchBrowser(scriptPaths: string[])
 	{
 		const browser = await Puppeteer.launch({
-			headless: this.options.headless,
+			headless: !this.options.open,
 			devtools: true,
 			args: [
 				"--allow-file-access-from-files",
 				"--allow-cross-origin-auth-prompt",
 				"--allow-external-pages",
 				"--allow-insecure-localhost ",
-				"--allow-running-insecure-content ",
-				"--allow-sandbox-debugging ",
+				"--allow-running-insecure-content",
+				"--allow-sandbox-debugging",
 				"--enable-local-file-accesses"
 			]
 		});

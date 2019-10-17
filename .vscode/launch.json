@@ -6,7 +6,7 @@
 		"request": "launch",
 		"name": "Debug",
 		"program": "${workspaceFolder}/build/index.js",
-		"cwd": "/Users/paul/Work/Code/TruthStack/Reflex",
+		"cwd": "${env:HOME}/Work/Code/TruthStack/Backer/TruthTalk.Test",
 		"args": [
 			"."
 		]

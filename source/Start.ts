@@ -3,7 +3,7 @@
 interface IOptions
 {
 	port: number;
-	headless: boolean;
+	open: boolean;
 	target: string;
 	verbose: boolean;
 	help: boolean;
@@ -25,10 +25,10 @@ interface IOptions
 			defaultValue: 7007
 		},
 		{
-			name: "headless",
-			alias: "h",
+			name: "open",
+			alias: "o",
 			type: Boolean,
-			defaultValue: true
+			defaultValue: false
 		},
 		{
 			name: "target",
