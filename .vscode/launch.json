@@ -5,10 +5,12 @@
 		"type": "node",
 		"request": "launch",
 		"name": "Debug",
-		"program": "${workspaceFolder}/build/index.js",
-		"cwd": "${env:HOME}/Work/Code/TruthStack/Backer/TruthTalk.Test",
+		"program": "${workspaceRoot}/build/index.js",
+		"cwd": "${workspaceRoot}",
+		"sourceMaps": true,
+		"smartStep": true,
 		"args": [
-			"."
+			"--open ."
 		]
 	},
 	{
@@ -16,7 +18,7 @@
 		"request": "launch",
 		"name": "Debug Makets Script",
 		"program": "${env:HOME}/.npm-packages/bin/makets",
-		"cwd": "${workspaceFolder}",
+		"cwd": "${workspaceRoot}",
 		"args": [
 			"publish"
 		]

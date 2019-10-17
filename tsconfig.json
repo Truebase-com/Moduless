@@ -23,5 +23,9 @@
 		"**/build/**/*.ts",
 		"**/bundle/**/*.ts",
 		"**/make.ts"
-	]
+	],
+	"moduless": {
+		"port": 7007
+		
+	}
 }
