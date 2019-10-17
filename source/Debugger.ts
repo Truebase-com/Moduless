@@ -107,7 +107,7 @@ class Debugger
 			}
 			else
 			{
-				const indexHtml = `<!doctype html>X`;
+				const indexHtml = `<!doctype html>`;
 				
 				res.writeHead(200, {
 					"Content-Type": "text/html",
