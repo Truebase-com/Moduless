@@ -65,7 +65,12 @@ interface IOptions
 	}
 	
 	const deb = new Debugger(options);
+	
+	await deb.launchServer();
+	console.log(`HTTP server listening at http://localhost:${options.port}`);
+	
 	const outFiles = deb.findOutFilesRecursive(options.target);
+	await deb.launchBrowser(outFiles);
 	
 	if (options.verbose)
 	{
@@ -73,7 +78,4 @@ interface IOptions
 		for (const outFile of outFiles)
 			console.log("\t" + outFile);
 	}
-	
-	await deb.launchServer();
-	await deb.launchBrowser(outFiles);
 })();
