@@ -8,10 +8,7 @@
 		"program": "${workspaceRoot}/build/index.js",
 		"cwd": "${workspaceRoot}",
 		"sourceMaps": true,
-		"smartStep": true,
-		"args": [
-			"--open ."
-		]
+		"smartStep": true
 	},
 	{
 		"type": "node",
