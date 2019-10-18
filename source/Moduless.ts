@@ -113,11 +113,8 @@ function findNestedOutFiles(fromDir: string)
  */
 function findCommonPath(paths: string[])
 {
-	if (paths.length === 0)
+	if (paths.length < 2)
 		return "";
-	
-	if (paths.length === 1)
-		return paths[0];
 	
 	const pathsBroken = paths
 		.map(p => p.split(Path.sep))
