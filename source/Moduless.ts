@@ -160,19 +160,20 @@ function launchServer(
 	{
 		const urlParsed = Url.parse(req.url || "");
 		
-		if (urlParsed.path && urlParsed.path.endsWith(".js"))
+		if (urlParsed.path && (urlParsed.path.endsWith(".js") || urlParsed.path.endsWith(".json")))
 		{
+			const js = urlParsed.path.endsWith(".js");
 			const jsFilePath = Path.join(serverRoot, urlParsed.path);
 			
 			if (!Fs.existsSync(jsFilePath))
 				return console.error(
-					"JavaScript file not found: " + urlParsed.path + "\n" +
-					"Resolved to: " + jsFilePath);
+					`${js ? "JavaScript" : "JSON"} file not found: ${urlParsed.path}
+					Resolved to: ${jsFilePath}`);
 			
 			const jsFileBuffer = Fs.readFileSync(jsFilePath);
 			
 			res.writeHead(200, {
-				"Content-Type": "text/javascript",
+				"Content-Type": js ? "text/javascript" : "application/json",
 				"Content-Length": jsFileBuffer.length
 			});
 			
