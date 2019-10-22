@@ -56,6 +56,8 @@ function findNestedOutFiles(fromDir: string)
 		return Path.join(resolved, "tsconfig.json");
 	};
 	
+	const visitedPaths: string[] = [];
+	
 	//
 	const recurse = (currentPath: string, targetConfigPath: string) =>
 	{
@@ -69,6 +71,10 @@ function findNestedOutFiles(fromDir: string)
 			return;
 		}
 		
+		if (visitedPaths.includes(tsConfigFilePath))
+			throw new Error("Circular project reference including: " + tsConfigFilePath);
+		
+		visitedPaths.push(tsConfigFilePath);
 		const tsConfig = parseJsonFile(tsConfigFilePath);
 		
 		for (const refEntry of tsConfig.references || [])
