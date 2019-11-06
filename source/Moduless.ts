@@ -16,8 +16,7 @@ const options = (() =>
 	const modulessConfig = initialTsConfig.moduless || {};
 	
 	return {
-		port: (modulessConfig.port | 0) || 7007,
-		verbose: !!modulessConfig.verbose
+		port: (modulessConfig.port | 0) || 7007
 	};
 })();
 
@@ -86,9 +85,7 @@ function findNestedOutFiles(fromDir: string)
 			// because they'll already be in the output.
 			if (prepend)
 			{
-				if (options.verbose)
-					console.log(`(Found ${refPath}, but skipping because "prepend" is true.)`);
-				
+				console.log(`(Found ${refPath}, but skipping because "prepend" is true.)`);
 				continue;
 			}
 			
@@ -200,8 +197,7 @@ function launchServer(
 	
 	server.listen(options.port);
 	
-	if (options.verbose)
-		console.log("Server listening on port: " + options.port);
+	console.log("Server listening on port: " + options.port);
 }
 
 /** */
