@@ -13,10 +13,14 @@ const options = (() =>
 		throw new Error("Config file not found: " + startingConfig);
 	
 	const initialTsConfig = parseJsonFile(startingConfig);
+	if (!initialTsConfig)
+		throw new Error("Could not parse: " + startingConfig);
+	
 	const modulessConfig = initialTsConfig.moduless || {};
 	
 	return {
-		port: (modulessConfig.port | 0) || 7007
+		port: (modulessConfig.port | 0) || 7007,
+		verbose: !!modulessConfig.verbose
 	};
 })();
 
@@ -29,7 +33,7 @@ function parseJsonFile(jsonFilePath: string)
 	
 	try
 	{
-		return JSON.parse(fileText);
+		return new Function("return (" + fileText + ");")();
 	}
 	catch (e)
 	{
@@ -71,7 +75,10 @@ function findNestedOutFiles(fromDir: string)
 		}
 		
 		if (visitedPaths.includes(tsConfigFilePath))
-			throw new Error("Circular project reference including: " + tsConfigFilePath);
+		{
+			console.warn("Circular project reference including: " + tsConfigFilePath);
+			return;
+		}
 		
 		visitedPaths.push(tsConfigFilePath);
 		const tsConfig = parseJsonFile(tsConfigFilePath);
@@ -85,7 +92,9 @@ function findNestedOutFiles(fromDir: string)
 			// because they'll already be in the output.
 			if (prepend)
 			{
-				console.log(`(Found ${refPath}, but skipping because "prepend" is true.)`);
+				if (options.verbose)
+					console.log(`(Found ${refPath}, but skipping because "prepend" is true.)`);
+				
 				continue;
 			}
 			
@@ -196,7 +205,6 @@ function launchServer(
 	});
 	
 	server.listen(options.port);
-	
 	console.log("Server listening on port: " + options.port);
 }
 
@@ -214,7 +222,19 @@ function setTerminalTitle(title: string)
 	setTerminalTitle("Moduless");
 	
 	const outFiles = findNestedOutFiles(process.cwd());
+	
+	if (options.verbose)
+		for (const outFile of outFiles)
+			console.log("Found outFile at location: " + outFile);
+	
 	const commonPath = findCommonPath(outFiles);
 	const outFilesRelative = outFiles.map(p => p.slice(commonPath.length));
+	
+	if (options.verbose)
+	{
+		console.log("Server root directory is: " + commonPath);
+		console.log("Launching server at port: " + options.port);
+	}
+	
 	launchServer(commonPath, outFilesRelative);
 })();
