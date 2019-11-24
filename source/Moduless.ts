@@ -1,9 +1,4 @@
 
-const Fs: typeof import("fs") = require("fs");
-const Path: typeof import("path") = require("path");
-const Url: typeof import("url") = require("url");
-const Http: typeof import("http") = require("http");
-
 /** */
 const options = (() =>
 {
@@ -87,11 +82,11 @@ function parseJsonFile(jsonFilePath: string)
 /**
  * 
  */
-function recurseTsConfigFiles(fromDir: string)
+function discoverScripts(fromDir: string)
 {
-	const discoveredOutFiles: string[] = [];
-	const localScripts: string[] = [];
-	const externalScripts: string[] = [];
+	enum Kind { external, local, outFile };
+	const scripts: { kind: Kind, path: string }[] = [];
+	const hasScript = (path: string) => scripts.some(s => s.path === path);
 	
 	//
 	const qualifyPath = (unqualifiedPath: string) =>
@@ -149,40 +144,58 @@ function recurseTsConfigFiles(fromDir: string)
 			recurse(tsConfigDirPath, refPath);
 		}
 		
-		if (tsConfig.compilerOptions.outFile)
-		{
-			const outFile = Path.join(tsConfigDirPath, tsConfig.compilerOptions.outFile);
-			if (!discoveredOutFiles.includes(outFile))
-				discoveredOutFiles.push(outFile);
-		}
-		
 		for (const script of tsConfig.moduless.scripts)
 		{
 			if (typeof script === "string")
 			{
+				if (hasScript(script))
+					continue;
+				
 				const scriptUrl = Url.parse(script);
 				if (scriptUrl.protocol === "http:" || scriptUrl.protocol === "https:")
 				{
-					externalScripts.push(script);
+					scripts.push({ kind: Kind.external, path: script });
 					continue;
 				}
 				else if (scriptUrl.protocol === null)
 				{
-					localScripts.push(Path.join(tsConfigDirPath, script));
+					scripts.push({ kind: Kind.local, path: Path.join(tsConfigDirPath, script) });
 					continue;
 				}
 			}
 			
 			console.log("Invalid script URL: " + String(script));
 		}
+		
+		if (tsConfig.compilerOptions.outFile)
+		{
+			const outFile = Path.join(tsConfigDirPath, tsConfig.compilerOptions.outFile);
+			if (!hasScript(outFile))
+				scripts.push({ kind: Kind.outFile, path: outFile });
+		}
 	}
 	
 	recurse(fromDir, "tsconfig.json");
 	
+	if (options.verbose)
+		for (const entry of scripts)
+			console.log(`Including ${Kind[entry.kind]} script: ` + entry.path);
+	
+	const localScriptPaths = scripts
+		.filter(sc => sc.kind !== Kind.external)
+		.map(sc => sc.path);
+	
+	const commonPath = localScriptPaths.length === 1 ?
+		findCommonPath(localScriptPaths.concat(process.cwd())) :
+		findCommonPath(localScriptPaths);
+	
+	for (const entry of scripts)
+		if (entry.kind !== Kind.external)
+			entry.path = entry.path.slice(commonPath.length);
+	
 	return {
-		outFiles: discoveredOutFiles,
-		local: localScripts,
-		external: externalScripts
+		scripts: scripts.map(sc => sc.path),
+		root: commonPath
 	}
 }
 
@@ -272,46 +285,5 @@ function launchServer(
 	});
 	
 	server.listen(options.port);
-	console.log("Server listening on port: " + options.port);
+	console.log("Moduless available at: http://127.0.0.1:" + options.port);
 }
-
-/** */
-function setTerminalTitle(title: string)
-{
-	process.stdout.write(
-		String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
-	);
-}
-
-/** */
-(function start()
-{
-	setTerminalTitle("Moduless");
-	
-	const scripts = recurseTsConfigFiles(process.cwd());
-	
-	if (options.verbose)
-	{
-		for (const outFile of scripts.outFiles)
-			console.log("Found outFile at location: " + outFile);
-		
-		for (const ext of scripts.external)
-			console.log("Found external script: " + ext);
-		
-		for (const local of scripts.local)
-			console.log("Found local script: " + local);
-	}
-	
-	const commonPath = findCommonPath(scripts.outFiles);
-	const includeScripts = scripts.outFiles
-		.concat(scripts.local)
-		.map(p => p.slice(commonPath.length))
-		.concat(scripts.external);
-	
-	if (options.verbose)
-	{
-		console.log("Server root directory is: " + Path.resolve(commonPath));
-	}
-	
-	launchServer(commonPath, includeScripts);
-})();
