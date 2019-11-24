@@ -303,10 +303,10 @@ function setTerminalTitle(title: string)
 	}
 	
 	const commonPath = findCommonPath(scripts.outFiles);
-	const includeScripts = scripts.outFiles
-		.concat(scripts.local)
-		.map(p => p.slice(commonPath.length))
-		.concat(scripts.external);
+	const includeScripts = scripts.external
+		.concat(scripts.outFiles
+			.concat(scripts.local)
+			.map(p => p.slice(commonPath.length)));
 	
 	if (options.verbose)
 	{
