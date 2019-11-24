@@ -25,6 +25,10 @@
 		"**/make.ts"
 	],
 	"moduless": {
-		"port": 7007
+		"port": 7007,
+		"verbose": true,
+		// This script isn't actually needed, it's just used during testing
+		// to see if external script URLs are loading correctly.
+		"scripts": "https://cdn.jsdelivr.net/npm/meriyah@1.9.3/dist/meriyah.umd.min.js"
 	}
 }

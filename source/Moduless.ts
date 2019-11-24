@@ -12,21 +12,64 @@ const options = (() =>
 	if (!Fs.existsSync(startingConfig))
 		throw new Error("Config file not found: " + startingConfig);
 	
-	const initialTsConfig = parseJsonFile(startingConfig);
-	if (!initialTsConfig)
-		throw new Error("Could not parse: " + startingConfig);
-	
-	const modulessConfig = initialTsConfig.moduless || {};
-	
-	return {
-		port: (modulessConfig.port | 0) || 7007,
-		verbose: !!modulessConfig.verbose
-	};
+	const tsConfig = parseTsConfigFile(startingConfig);
+	return tsConfig.moduless;
 })();
 
 /**
  * 
-*/
+ */
+function parseTsConfigFile(tsConfigFilePath: string)
+{
+	type TReference = {
+		path: string;
+		prepend: boolean;
+	};
+	
+	type TRelevantConfig = {
+		compilerOptions: {
+			outFile: string
+		},
+		references: TReference[],
+		moduless: {
+			port: number,
+			verbose: boolean,
+			scripts: string[]
+		}
+	};
+	
+	const tsConfig = <TRelevantConfig>parseJsonFile(tsConfigFilePath);
+	
+	if (!tsConfig.compilerOptions)
+		tsConfig.compilerOptions = { outFile: "" };
+	
+	else if (!tsConfig.compilerOptions.outFile)
+		tsConfig.compilerOptions.outFile = "";
+	
+	if (!tsConfig.references)
+		tsConfig.references = [];
+	
+	if (!tsConfig.moduless)
+		tsConfig.moduless = { port: 7007, verbose: false, scripts: [] };
+	
+	else
+	{
+		tsConfig.moduless.port = tsConfig.moduless.port || 7007;
+		tsConfig.moduless.verbose = !!tsConfig.moduless.verbose;
+		
+		const scripts = tsConfig.moduless.scripts;
+		tsConfig.moduless.scripts = 
+			Array.isArray(scripts) ? scripts :
+			typeof scripts === "string" ? [scripts] :
+			[];
+	}
+	
+	return tsConfig;
+}
+
+/**
+ * 
+ */
 function parseJsonFile(jsonFilePath: string)
 {
 	const fileText = Fs.readFileSync(jsonFilePath, "utf8");
@@ -44,9 +87,11 @@ function parseJsonFile(jsonFilePath: string)
 /**
  * 
  */
-function findNestedOutFiles(fromDir: string)
+function recurseTsConfigFiles(fromDir: string)
 {
 	const discoveredOutFiles: string[] = [];
+	const localScripts: string[] = [];
+	const externalScripts: string[] = [];
 	
 	//
 	const qualifyPath = (unqualifiedPath: string) =>
@@ -81,9 +126,9 @@ function findNestedOutFiles(fromDir: string)
 		}
 		
 		visitedPaths.push(tsConfigFilePath);
-		const tsConfig = parseJsonFile(tsConfigFilePath);
+		const tsConfig = parseTsConfigFile(tsConfigFilePath);
 		
-		for (const refEntry of tsConfig.references || [])
+		for (const refEntry of tsConfig.references)
 		{
 			const refPath = refEntry.path;
 			const prepend = !!refEntry.prepend;
@@ -104,19 +149,41 @@ function findNestedOutFiles(fromDir: string)
 			recurse(tsConfigDirPath, refPath);
 		}
 		
-		if (typeof tsConfig.compilerOptions === "object")
+		if (tsConfig.compilerOptions.outFile)
 		{
-			if (typeof tsConfig.compilerOptions.outFile === "string")
+			const outFile = Path.join(tsConfigDirPath, tsConfig.compilerOptions.outFile);
+			if (!discoveredOutFiles.includes(outFile))
+				discoveredOutFiles.push(outFile);
+		}
+		
+		for (const script of tsConfig.moduless.scripts)
+		{
+			if (typeof script === "string")
 			{
-				const outFile = Path.join(tsConfigDirPath, tsConfig.compilerOptions.outFile);
-				if (!discoveredOutFiles.includes(outFile))
-					discoveredOutFiles.push(outFile);
+				const scriptUrl = Url.parse(script);
+				if (scriptUrl.protocol === "http:" || scriptUrl.protocol === "https:")
+				{
+					externalScripts.push(script);
+					continue;
+				}
+				else if (scriptUrl.protocol === null)
+				{
+					localScripts.push(Path.join(tsConfigDirPath, script));
+					continue;
+				}
 			}
+			
+			console.log("Invalid script URL: " + String(script));
 		}
 	}
 	
 	recurse(fromDir, "tsconfig.json");
-	return discoveredOutFiles;
+	
+	return {
+		outFiles: discoveredOutFiles,
+		local: localScripts,
+		external: externalScripts
+	}
 }
 
 /**
@@ -221,20 +288,30 @@ function setTerminalTitle(title: string)
 {
 	setTerminalTitle("Moduless");
 	
-	const outFiles = findNestedOutFiles(process.cwd());
-	
-	if (options.verbose)
-		for (const outFile of outFiles)
-			console.log("Found outFile at location: " + outFile);
-	
-	const commonPath = findCommonPath(outFiles);
-	const outFilesRelative = outFiles.map(p => p.slice(commonPath.length));
+	const scripts = recurseTsConfigFiles(process.cwd());
 	
 	if (options.verbose)
 	{
-		console.log("Server root directory is: " + commonPath);
-		console.log("Launching server at port: " + options.port);
+		for (const outFile of scripts.outFiles)
+			console.log("Found outFile at location: " + outFile);
+		
+		for (const ext of scripts.external)
+			console.log("Found external script: " + ext);
+		
+		for (const local of scripts.local)
+			console.log("Found local script: " + local);
 	}
 	
-	launchServer(commonPath, outFilesRelative);
+	const commonPath = findCommonPath(scripts.outFiles);
+	const includeScripts = scripts.outFiles
+		.concat(scripts.local)
+		.map(p => p.slice(commonPath.length))
+		.concat(scripts.external);
+	
+	if (options.verbose)
+	{
+		console.log("Server root directory is: " + Path.resolve(commonPath));
+	}
+	
+	launchServer(commonPath, includeScripts);
 })();
